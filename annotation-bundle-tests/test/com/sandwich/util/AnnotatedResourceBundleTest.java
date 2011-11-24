@@ -2,7 +2,6 @@ package com.sandwich.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Iterator;
@@ -23,11 +23,9 @@ public class AnnotatedResourceBundleTest {
 
 	@Test
 	public void testReadPropertyFileForAnnotations_noAnnotations() {
-		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle(
-				"no_annotations.properties", getClass().getClassLoader())
-				.readPropertyFileForAnnotations();
-		Iterator<Entry<String, Map<String, String>>> entrySet = attributes
-				.entrySet().iterator();
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("no_annotations.properties"));
+		Iterator<Entry<String, Map<String, String>>> entrySet = attributes.entrySet().iterator();
+		
 		Entry<String, Map<String, String>> property = entrySet.next();
 		assertEquals("1", property.getKey());
 		assertEquals(Collections.emptyMap(), property.getValue());
@@ -42,12 +40,28 @@ public class AnnotatedResourceBundleTest {
 
 		assertEquals(false, entrySet.hasNext());
 	}
+	
+	@SuppressWarnings("unchecked")
+	private Map<String, Map<String, String>> getPropertyAttributes(AnnotatedResourceBundle annotatedResourceBundle) {
+		try{
+			Field propertyAttributesMap = null;
+			try{
+				propertyAttributesMap = AnnotatedResourceBundle.class.getDeclaredField("propertyAttributes");
+				propertyAttributesMap.setAccessible(true);
+				return (Map<String, Map<String, String>>) propertyAttributesMap.get(annotatedResourceBundle);
+			}finally{
+				if(propertyAttributesMap != null){
+					propertyAttributesMap.setAccessible(false);
+				}
+			}
+		}catch(Exception x){
+			throw new RuntimeException(x);
+		}
+	}
 
 	@Test
 	public void testReadPropertyFileForAnnotations_firstLineAnnotated() {
-		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle(
-				"first_line_annotated.properties", getClass().getClassLoader())
-				.readPropertyFileForAnnotations();
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("first_line_annotated.properties"));
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes
 				.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
@@ -72,25 +86,25 @@ public class AnnotatedResourceBundleTest {
 	@Test
 	public void testParsingAttributesFromLine_emptyLine() throws Exception {
 		assertEquals(Collections.emptyMap(),
-				new AnnotatedResourceBundle().parseAttributesFromLine(""));
+				new PropertiesFileReader(null).parseAttributesFromLine(""));
 	}
 
 	@Test
 	public void testParsingAttributesFromLine_newLine() throws Exception {
 		assertEquals(Collections.emptyMap(),
-				new AnnotatedResourceBundle().parseAttributesFromLine("\r\n"));
+				new PropertiesFileReader(null).parseAttributesFromLine("\r\n"));
 	}
 
 	@Test
 	public void testParsingAttributesFromLine_normalProperty() throws Exception {
 		assertEquals(Collections.emptyMap(),
-				new AnnotatedResourceBundle()
+				new PropertiesFileReader(null)
 						.parseAttributesFromLine("key=value"));
 	}
 
 	@Test
 	public void testParsingAttributesFromLine_keyIsTrimmed() throws Exception {
-		Map<String, String> propertiesMap = new AnnotatedResourceBundle()
+		Map<String, String> propertiesMap = new PropertiesFileReader(null)
 				.parseAttributesFromLine("#@ key  :value;");
 		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
 				.iterator();
@@ -103,7 +117,7 @@ public class AnnotatedResourceBundleTest {
 	@Test
 	public void testParsingAttributesFromLine_keyNeedsNoSpacing()
 			throws Exception {
-		Map<String, String> propertiesMap = new AnnotatedResourceBundle()
+		Map<String, String> propertiesMap = new PropertiesFileReader(null)
 				.parseAttributesFromLine("#@key:value;");
 		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
 				.iterator();
@@ -116,7 +130,7 @@ public class AnnotatedResourceBundleTest {
 	@Test
 	public void testParsingAttributesFromLine_valueRetainsSpacing()
 			throws Exception {
-		Map<String, String> propertiesMap = new AnnotatedResourceBundle()
+		Map<String, String> propertiesMap = new PropertiesFileReader(null)
 				.parseAttributesFromLine("#@ key:  value ;");
 		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
 				.iterator();
@@ -128,7 +142,7 @@ public class AnnotatedResourceBundleTest {
 
 	@Test
 	public void testParsingAttributesFromLine_noSeparator() throws Exception {
-		Map<String, String> propertiesMap = new AnnotatedResourceBundle()
+		Map<String, String> propertiesMap = new PropertiesFileReader(null)
 				.parseAttributesFromLine("#@ key:value key2:value2");
 		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
 				.iterator();
@@ -140,9 +154,7 @@ public class AnnotatedResourceBundleTest {
 
 	@Test
 	public void testValueInjection() throws Exception {
-		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle(
-				"injectable_values.properties", getClass().getClassLoader())
-				.readPropertyFileForAnnotations();
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("injectable_values.properties"));
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes
 				.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
@@ -199,13 +211,53 @@ public class AnnotatedResourceBundleTest {
 		assertEquals(false, entrySet.hasNext());
 	}
 
+	@Test /** @see annotation-bundle-props-outside-cp project, files are bound by classloader not filesystem */
+	public void testValueInjection_married() throws Exception {
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("injectable_outside_classpath.properties"));
+		Iterator<Entry<String, Map<String, String>>> entrySet = attributes.entrySet().iterator();
+		Entry<String, Map<String, String>> property = entrySet.next();
+
+		// line 1
+		assertEquals("key", property.getKey());
+
+		Iterator<Entry<String, String>> attr = property.getValue().entrySet().iterator();
+
+		Entry<String, String> entry = attr.next();
+		assertEquals("key", entry.getKey());
+		assertEquals("value", entry.getValue());
+
+		entry = attr.next();
+		assertEquals("one", entry.getKey());
+		assertEquals("one", entry.getValue());
+
+		entry = attr.next();
+		assertEquals("two", entry.getKey());
+		assertEquals("2", entry.getValue());
+
+		assertEquals(false, attr.hasNext());
+		
+		// line 2
+		property = entrySet.next();
+		assertEquals("two", property.getKey());
+		attr = property.getValue().entrySet().iterator();
+		// no annotated key/value pairs
+		assertEquals(false, attr.hasNext());
+
+		// line 3
+		property = entrySet.next();
+		assertEquals("3", property.getKey());
+		attr = property.getValue().entrySet().iterator();
+
+		// no annotated key/value pairs
+		assertEquals(false, attr.hasNext());
+	}
+	
 	@Test
 	public void testRefreshCache() throws Exception {
 		//copy over a new copy of file just in case - so we mutate only a new instance of file
 		String mutableFileName = copyNewMutableFile();
-		AnnotatedResourceBundle bundle = new AnnotatedResourceBundle(
-				mutableFileName, getClass().getClassLoader());
-		Map<String, Map<String, String>> attributes = bundle.readPropertyFileForAnnotations();
+		AnnotatedResourceBundle bundle = new AnnotatedResourceBundle(mutableFileName);
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(bundle);
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
 		
@@ -236,7 +288,7 @@ public class AnnotatedResourceBundleTest {
 	 	bundle.refreshCache();
 	 	
 		// entire file is reread - contains values written above
-	 	entrySet = bundle.readPropertyFileForAnnotations().entrySet().iterator();
+	 	entrySet = bundle.readFilesForAnnotations().entrySet().iterator();
 	 	property = entrySet.next();
 		assertEquals("howdy", property.getKey());
 
@@ -248,24 +300,35 @@ public class AnnotatedResourceBundleTest {
 		assertFalse(entrySet.hasNext());
 	}
 
-	@Test
+	@Test(expected = NullPointerException.class) // will totally throw a NPE if uninitialized
 	public void testGetAttributes_null() throws Exception {
-		assertNull(new AnnotatedResourceBundle().getAttributes(null));
+		new AnnotatedResourceBundle().getAttributes(null);
 	}
 	
 	@Test // @see testReadPropertyFileForAnnotations_firstLineAnnotated for evidence of values from readPropertyFileForAnnotations
 	public void testGetAttributes_hasValues() throws Exception {
-		AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle(
-				"first_line_annotated.properties", getClass().getClassLoader());
-		Map<String, Map<String, String>> attributes = annotatedResourceBundle
-				.readPropertyFileForAnnotations();
+		AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("first_line_annotated.properties");
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(annotatedResourceBundle);
 		String key = "key";
 		assertFalse(attributes.get(key).isEmpty());
 		assertEquals(attributes.get(key), annotatedResourceBundle.getAttributes(key));
 	}
 	
-	private String copyNewMutableFile() throws URISyntaxException,
-			FileNotFoundException, IOException {
+	@Test /** @see annotation-bundle-props-outside-cp project, files are bound by classloader not filesystem */
+	public void testAnnotationMarriedOutsidePropertiesFile() throws Exception {
+		AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("outside_classpath.properties");
+		Map<String, Map<String, String>> attributes = getPropertyAttributes(annotatedResourceBundle);
+		String key = "key";
+		Map<String, String> value = attributes.get(key);
+		assertFalse(value.isEmpty());
+		assertEquals(value, annotatedResourceBundle.getAttributes(key));
+		assertEquals(1, value.size());
+		Entry<String, String> entry = value.entrySet().iterator().next();
+		assertEquals("key", entry.getKey());
+		assertEquals("value", entry.getValue());
+	}
+	
+	private String copyNewMutableFile() throws URISyntaxException, FileNotFoundException, IOException {
 		InputStream in = null;
 		OutputStream out = null;
 		String copiedFileName = "mutable.properties";
