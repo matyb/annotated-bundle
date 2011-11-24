@@ -1,4 +1,4 @@
-package com.sandwich.util;
+package com.sandwich.annotatedbundle;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -18,6 +18,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.junit.Test;
+
+import com.sandwich.annotatedbundle.AnnotatedResourceBundle;
+import com.sandwich.annotatedbundle.PropertiesFileReader;
 
 public class AnnotatedResourceBundleTest {
 

@@ -1,4 +1,4 @@
-package com.sandwich.util;
+package com.sandwich.annotatedbundle;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
