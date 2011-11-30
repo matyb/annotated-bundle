@@ -16,11 +16,7 @@ public class AnnotationsFileReader extends FileReader {
 	
 	public AnnotationsFileReader(ResourceBundle bundle){
 		super(bundle);
-	}
-	
-	@Override
-	protected boolean isNullFileAcceptable() {
-		return true;
+		isNullFileAcceptable = true;
 	}
 	
 	/**
@@ -32,14 +28,17 @@ public class AnnotationsFileReader extends FileReader {
 	}
 	
 	@Override
-	void captureProperties(Map<String, Map<String, String>> propertyAttributes, String currentLine, String previousLine, String key) {
-		int indexOfFirstDelimiter = currentLine.indexOf(ANNOTATION_VALUE_DELIMITER);
-		if(currentLine.startsWith(BOUND_KEY_START) && indexOfFirstDelimiter > BOUND_KEY_START.length()){
-			String boundedKey =  currentLine.substring(BOUND_KEY_START.length(), indexOfFirstDelimiter);
-			if(boundedKey.equals(key)){
-				String line = ANNOTATION_LINE_START + currentLine.substring(indexOfFirstDelimiter + 1);
-				propertyAttributes.put(boundedKey, parseAttributesFromLine(line));
-			}
+	Map.Entry<String, Map<String, String>> captureProperties(String currentLine, String previousLine) {
+		int indexOfFirstDelimiter = currentLine == null ? -1 : currentLine.indexOf(ANNOTATION_VALUE_DELIMITER);
+		if(indexOfFirstDelimiter > BOUND_KEY_START.length() && currentLine.startsWith(BOUND_KEY_START)){
+			final String boundedKey =  currentLine.substring(BOUND_KEY_START.length(), indexOfFirstDelimiter);
+			final String line = currentLine.substring(indexOfFirstDelimiter + 1);
+			return new Entry(boundedKey) {
+				@Override Map<String, String> readProperties() {
+					return parseAttributesFromLine(line);
+				}
+			};
 		}
+		return null;
 	}
 }

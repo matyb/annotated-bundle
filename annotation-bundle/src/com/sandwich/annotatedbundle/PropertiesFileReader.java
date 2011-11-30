@@ -1,6 +1,6 @@
 package com.sandwich.annotatedbundle;
 
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -25,19 +25,21 @@ public class PropertiesFileReader extends FileReader {
 	}
 	
 	@Override
-	void captureProperties(Map<String, Map<String, String>> propertyAttributes, String currentLine, String previousLine, String key) {
-		int indexOfEquals = currentLine.indexOf(PROP_KEY_VAL_SEPARATOR); //property line
+	Map.Entry<String, Map<String, String>> captureProperties(String currentLine, final String previousLine) {
+		int indexOfEquals = currentLine == null ? -1 : currentLine.indexOf(PROP_KEY_VAL_SEPARATOR); //property line
 		if(indexOfEquals >= 0) {
-			String lKey = currentLine.substring(0, indexOfEquals);
-			Map<String, String> attributes = propertyAttributes.get(lKey);
-			if(attributes == null){
-				attributes = new LinkedHashMap<String, String>();
-			}
-			if(previousLine != null && lKey.equals(key)){
-				attributes.putAll(parseAttributesFromLine(previousLine));
-			}
-			propertyAttributes.put(lKey, attributes);
+			return new Entry(currentLine.substring(0, indexOfEquals)) {
+				@Override Map<String, String> readProperties() {
+					if(previousLine != null && previousLine.startsWith(ANNOTATION_LINE_START)){
+						String trimmedLine = previousLine.substring(ANNOTATION_LINE_START.length()).trim();
+						return parseAttributesFromLine(trimmedLine);
+					}else{
+						return Collections.emptyMap();
+					}
+				}
+			};
 		}
+		return null;
 	}
 	
 }

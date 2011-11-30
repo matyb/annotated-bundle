@@ -1,9 +1,6 @@
 package com.sandwich.annotatedbundle;
 
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -63,7 +60,7 @@ public class AnnotatedResourceBundle {
 		this.bundleName = bundleName.replace(PropertiesFileReader.PROPERTIES_FILE_SUFFIX, "");
 		this.propertiesFileReader = new PropertiesFileReader(bundle);
 		this.annotationsFileReader = new AnnotationsFileReader(bundle);
-		this.propertyAttributes = readFilesForAnnotations(bundle.getKeys(), classLoader);
+		this.propertyAttributes = readFilesForAnnotations(classLoader);
 		return bundle;
 	}
 
@@ -75,11 +72,11 @@ public class AnnotatedResourceBundle {
 	 * @return Map<String, Map<String, String>> map keyed by property key w/ value of map representing key value pairs in annotation
 	 */
 	Map<String, Map<String, String>> readFilesForAnnotations(){
-		return readFilesForAnnotations(bundle.getKeys(), getClass().getClassLoader());
+		return readFilesForAnnotations(getClass().getClassLoader());
 	}
 	
-	private Map<String, Map<String, String>> readFilesForAnnotations(Enumeration<String> keysEnumeration, ClassLoader classLoader){
-		return readFilesForAnnotations(bundleName, Collections.list(keysEnumeration), classLoader);
+	private Map<String, Map<String, String>> readFilesForAnnotations(ClassLoader classLoader){
+		return readFilesForAnnotations(bundleName, classLoader);
 	}
 	
 	/**
@@ -87,11 +84,11 @@ public class AnnotatedResourceBundle {
 	 * @param keysEnumeration
 	 * @return
 	 */
-	private Map<String, Map<String, String>> readFilesForAnnotations(String bundleName, List<String> keys, ClassLoader classLoader) {
+	private Map<String, Map<String, String>> readFilesForAnnotations(String bundleName, ClassLoader classLoader) {
 		Map<String, Map<String, String>> propertyAttributes = new LinkedHashMap<String, Map<String, String>>();
-		propertyAttributes.putAll(annotationsFileReader.capturePropertiesFromFile(keys, bundleName, classLoader));
+		propertyAttributes.putAll(annotationsFileReader.capturePropertiesFromFile(bundleName, classLoader));
 		// only replace if existing, otherwise use resulting map from property file reading
-		Map<String, Map<String, String>> propertiesFromPropertyFile = propertiesFileReader.capturePropertiesFromFile(keys, bundleName, classLoader);
+		Map<String, Map<String, String>> propertiesFromPropertyFile = propertiesFileReader.capturePropertiesFromFile(bundleName, classLoader);
 		for(Entry<String, Map<String, String>> entry : propertiesFromPropertyFile.entrySet()){
 			Map<String, String> value = propertyAttributes.get(entry.getKey());
 			if(value == null){
@@ -132,7 +129,7 @@ public class AnnotatedResourceBundle {
 		return getPropertyAttributes().get(key);
 	}
 	
-	private Map<String, Map<String, String>> getPropertyAttributes() {
+	Map<String, Map<String, String>> getPropertyAttributes() {
 		if(propertyAttributes == null){
 			propertyAttributes = readFilesForAnnotations();
 		}

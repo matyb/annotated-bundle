@@ -6,8 +6,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.Scanner;
 
@@ -35,6 +35,7 @@ public abstract class FileReader {
 	protected static final String ANNOTATION_LINE_START = "#@";
 	
 	private ResourceBundle bundle;
+	protected boolean isNullFileAcceptable = false;
 	
 	public FileReader(ResourceBundle bundle){
 		this.bundle = bundle;
@@ -47,23 +48,22 @@ public abstract class FileReader {
 	abstract public String getFileSuffix();
 	
 	/**
-	 * handle a single key/line combination being read in sequence, along with
-	 * it's prior line and a map to set properties read from the line in. that
-	 * map is keyed by property key and value is map read from annotation.
+	 * handle a single line being read in sequence, along with it's prior line
+	 * and a map to set properties read from the line in. that map is keyed by
+	 * property key and value is map read from annotation.
 	 * 
-	 * @param propertyAttributes
 	 * @param currentLine
 	 * @param previousLine
-	 * @param key
+	 * @return annotations by property key
 	 */
-	abstract void captureProperties(Map<String, Map<String, String>> propertyAttributes, String currentLine, String previousLine, String key);
+	abstract Entry<String, Map<String, String>> captureProperties(String currentLine, String previousLine);
 	
 	/**
 	 * should we ignore a missing file?
 	 * @return
 	 */
 	protected boolean isNullFileAcceptable(){
-		return false;
+		return isNullFileAcceptable;
 	}
 	
 	/**
@@ -75,10 +75,6 @@ public abstract class FileReader {
 	 * @return
 	 */
 	Map<String, String> parseAttributesFromLine(String line) {
-		if(line == null || !line.startsWith(ANNOTATION_LINE_START)){
-			return Collections.emptyMap();
-		}
-		line = line.substring(2).trim();
 		Map<String, String> attrs = new LinkedHashMap<String, String>();
 		String[] segments = line.split(ANNOTATION_VALUE_DELIMITER);
 		for(String segment : segments){
@@ -119,8 +115,11 @@ public abstract class FileReader {
 	 * @param propertiesFile
 	 * @return
 	 */
-	public Map<String, Map<String, String>> capturePropertiesFromFile(List<String> keys, String bundleName, ClassLoader classLoader) {
-		File file = findFile(bundleName, classLoader);
+	public Map<String, Map<String, String>> capturePropertiesFromFile(String bundleName, ClassLoader classLoader) {
+		return capturePropertiesFromFile(findFile(bundleName, classLoader));
+	}
+
+	protected Map<String, Map<String, String>> capturePropertiesFromFile(File file) {
 		if(file == null && isNullFileAcceptable()){
 			return Collections.emptyMap();
 		}
@@ -130,9 +129,18 @@ public abstract class FileReader {
 			Scanner scanner = new Scanner(file);
 			while(scanner.hasNext()){
 				String line = scanner.nextLine();
-				for(String key : keys){
-					captureProperties(propertyAttributes, line, previousLine, key);
+				Entry<String, Map<String, String>> e = captureProperties(line, previousLine);
+				if(e == null){
+					previousLine = line;
+					continue;
 				}
+				String key = e.getKey();
+				Map<String, String> prior = propertyAttributes.get(key);
+				if(prior == null){
+					prior = new LinkedHashMap<String, String>();
+					propertyAttributes.put(key, prior);
+				}
+				prior.putAll(e.getValue());
 				previousLine = line;
 			}
 		} catch (FileNotFoundException e) {
@@ -145,6 +153,9 @@ public abstract class FileReader {
 	 * get a file instance without concatenating/replacing the file suffix.
 	 */
 	public File findFile(String bundleName, ClassLoader classLoader) {
+		if(bundleName == null){
+			return null;
+		}
 		URL url = classLoader.getResource(bundleName.endsWith(getFileSuffix()) ?
 				bundleName : bundleName + getFileSuffix());
 		if(url == null){

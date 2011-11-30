@@ -10,7 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Iterator;
@@ -20,13 +19,21 @@ import java.util.Map.Entry;
 import org.junit.Test;
 
 import com.sandwich.annotatedbundle.AnnotatedResourceBundle;
-import com.sandwich.annotatedbundle.PropertiesFileReader;
 
 public class AnnotatedResourceBundleTest {
 
 	@Test
 	public void testReadPropertyFileForAnnotations_noAnnotations() {
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("no_annotations.properties"));
+		testReadPropertyFileForAnnotations_noAnnotations("no_annotations.properties");
+	}
+
+	@Test
+	public void testReadPropertyFileForAnnotations_noAnnotations_noFileSuffix() {
+		testReadPropertyFileForAnnotations_noAnnotations("no_annotations");
+	}
+	
+	private void testReadPropertyFileForAnnotations_noAnnotations(String fileName){
+		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle(fileName).getPropertyAttributes();
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes.entrySet().iterator();
 		
 		Entry<String, Map<String, String>> property = entrySet.next();
@@ -44,27 +51,18 @@ public class AnnotatedResourceBundleTest {
 		assertEquals(false, entrySet.hasNext());
 	}
 	
-	@SuppressWarnings("unchecked")
-	private Map<String, Map<String, String>> getPropertyAttributes(AnnotatedResourceBundle annotatedResourceBundle) {
-		try{
-			Field propertyAttributesMap = null;
-			try{
-				propertyAttributesMap = AnnotatedResourceBundle.class.getDeclaredField("propertyAttributes");
-				propertyAttributesMap.setAccessible(true);
-				return (Map<String, Map<String, String>>) propertyAttributesMap.get(annotatedResourceBundle);
-			}finally{
-				if(propertyAttributesMap != null){
-					propertyAttributesMap.setAccessible(false);
-				}
-			}
-		}catch(Exception x){
-			throw new RuntimeException(x);
-		}
+	@Test
+	public void testReadPropertyFileForAnnotations_firstLineAnnotated_withFileSuffix() {
+		testReadPropertyFileAnnotations_firstLineAnnotated("first_line_annotated.properties");
+	}
+	
+	@Test
+	public void testReadPropertyFileForAnnotations_firstLineAnnotated_noFileSuffix() {
+		testReadPropertyFileAnnotations_firstLineAnnotated("first_line_annotated");
 	}
 
-	@Test
-	public void testReadPropertyFileForAnnotations_firstLineAnnotated() {
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("first_line_annotated.properties"));
+	private void testReadPropertyFileAnnotations_firstLineAnnotated(String fileName){
+		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle(fileName).getPropertyAttributes();
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes
 				.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
@@ -87,77 +85,8 @@ public class AnnotatedResourceBundleTest {
 	}
 
 	@Test
-	public void testParsingAttributesFromLine_emptyLine() throws Exception {
-		assertEquals(Collections.emptyMap(),
-				new PropertiesFileReader(null).parseAttributesFromLine(""));
-	}
-
-	@Test
-	public void testParsingAttributesFromLine_newLine() throws Exception {
-		assertEquals(Collections.emptyMap(),
-				new PropertiesFileReader(null).parseAttributesFromLine("\r\n"));
-	}
-
-	@Test
-	public void testParsingAttributesFromLine_normalProperty() throws Exception {
-		assertEquals(Collections.emptyMap(),
-				new PropertiesFileReader(null)
-						.parseAttributesFromLine("key=value"));
-	}
-
-	@Test
-	public void testParsingAttributesFromLine_keyIsTrimmed() throws Exception {
-		Map<String, String> propertiesMap = new PropertiesFileReader(null)
-				.parseAttributesFromLine("#@ key  :value;");
-		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
-				.iterator();
-		Entry<String, String> entry = properties.next();
-		assertEquals("key", entry.getKey()); // no space
-		assertEquals("value", entry.getValue());
-		assertFalse(properties.hasNext());
-	}
-
-	@Test
-	public void testParsingAttributesFromLine_keyNeedsNoSpacing()
-			throws Exception {
-		Map<String, String> propertiesMap = new PropertiesFileReader(null)
-				.parseAttributesFromLine("#@key:value;");
-		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
-				.iterator();
-		Entry<String, String> entry = properties.next();
-		assertEquals("key", entry.getKey()); // no space
-		assertEquals("value", entry.getValue());
-		assertFalse(properties.hasNext());
-	}
-
-	@Test
-	public void testParsingAttributesFromLine_valueRetainsSpacing()
-			throws Exception {
-		Map<String, String> propertiesMap = new PropertiesFileReader(null)
-				.parseAttributesFromLine("#@ key:  value ;");
-		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
-				.iterator();
-		Entry<String, String> entry = properties.next();
-		assertEquals("key", entry.getKey());
-		assertEquals("  value ", entry.getValue());
-		assertFalse(properties.hasNext());
-	}
-
-	@Test
-	public void testParsingAttributesFromLine_noSeparator() throws Exception {
-		Map<String, String> propertiesMap = new PropertiesFileReader(null)
-				.parseAttributesFromLine("#@ key:value key2:value2");
-		Iterator<Entry<String, String>> properties = propertiesMap.entrySet()
-				.iterator();
-		Entry<String, String> entry = properties.next();
-		assertEquals("key", entry.getKey());
-		assertEquals("value key2:value2", entry.getValue());
-		assertFalse(properties.hasNext());
-	}
-
-	@Test
 	public void testValueInjection() throws Exception {
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("injectable_values.properties"));
+		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle("injectable_values.properties").getPropertyAttributes();
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes
 				.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
@@ -216,7 +145,7 @@ public class AnnotatedResourceBundleTest {
 
 	@Test /** @see annotation-bundle-props-outside-cp project, files are bound by classloader not filesystem */
 	public void testValueInjection_married() throws Exception {
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(new AnnotatedResourceBundle("injectable_outside_classpath.properties"));
+		Map<String, Map<String, String>> attributes = new AnnotatedResourceBundle("injectable_outside_classpath.properties").getPropertyAttributes();
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
 
@@ -260,7 +189,7 @@ public class AnnotatedResourceBundleTest {
 		//copy over a new copy of file just in case - so we mutate only a new instance of file
 		String mutableFileName = copyNewMutableFile();
 		AnnotatedResourceBundle bundle = new AnnotatedResourceBundle(mutableFileName);
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(bundle);
+		Map<String, Map<String, String>> attributes = bundle.getPropertyAttributes();
 		Iterator<Entry<String, Map<String, String>>> entrySet = attributes.entrySet().iterator();
 		Entry<String, Map<String, String>> property = entrySet.next();
 		
@@ -305,22 +234,31 @@ public class AnnotatedResourceBundleTest {
 
 	@Test(expected = NullPointerException.class) // will totally throw a NPE if uninitialized
 	public void testGetAttributes_null() throws Exception {
-		new AnnotatedResourceBundle().getAttributes(null);
+		new AnnotatedResourceBundle().getPropertyAttributes();
 	}
 	
 	@Test // @see testReadPropertyFileForAnnotations_firstLineAnnotated for evidence of values from readPropertyFileForAnnotations
 	public void testGetAttributes_hasValues() throws Exception {
 		AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("first_line_annotated.properties");
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(annotatedResourceBundle);
+		Map<String, Map<String, String>> attributes = annotatedResourceBundle.getPropertyAttributes();
 		String key = "key";
 		assertFalse(attributes.get(key).isEmpty());
 		assertEquals(attributes.get(key), annotatedResourceBundle.getAttributes(key));
 	}
 	
 	@Test /** @see annotation-bundle-props-outside-cp project, files are bound by classloader not filesystem */
-	public void testAnnotationMarriedOutsidePropertiesFile() throws Exception {
-		AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("outside_classpath.properties");
-		Map<String, Map<String, String>> attributes = getPropertyAttributes(annotatedResourceBundle);
+	public void testAnnotationMarriedOutsidePropertiesFile_withSuffix() throws Exception {
+		testAnnotationMarriedOutsidePropertiesFile("outside_classpath.properties");
+	}
+	
+	@Test /** @see annotation-bundle-props-outside-cp project, files are bound by classloader not filesystem */
+	public void testAnnotationMarriedOutsidePropertiesFile_withoutSuffix() throws Exception {
+		testAnnotationMarriedOutsidePropertiesFile("outside_classpath");
+	}
+	
+	private void testAnnotationMarriedOutsidePropertiesFile(String fileName) throws Exception {
+		AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle(fileName);
+		Map<String, Map<String, String>> attributes = annotatedResourceBundle.getPropertyAttributes();
 		String key = "key";
 		Map<String, String> value = attributes.get(key);
 		assertFalse(value.isEmpty());
