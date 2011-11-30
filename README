@@ -28,8 +28,7 @@ There is also the ability to reference properties in the annotations:
   user_name=matyb
   password=pass123
 
-  AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle(
-      "connections.properties", getClass().getClassLoader());
+  AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("connections.properties");
   for(Entry<String, String> entry : annotatedResourceBundle.getAttributes("connection").entrySet()){
       System.out.println(entry);
   }
@@ -52,4 +51,4 @@ in the properties file, we can add metadata at runtime to it with:
 
 added to the annotations file (in the same pkg).
 
-For examples, please checkout the tests project (annotation-bundle-tests). 
+For specific examples, please check the tests. 
