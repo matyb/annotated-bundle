@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>annotation-bundle-tests</groupId>
-  <artifactId>annotation-bundle-tests</artifactId>
+  <groupId>annotation-bundle</groupId>
+  <artifactId>annotation-bundle</artifactId>
   <version>1</version>
-  <name>annotation-bundle-tests</name>
+  <name>annotation-bundle</name>
   <description>Unit tests that exercise and verify the behavior of the AnnotatedResourceBundle class and its dependencies.</description>
   <dependencies>
   	<dependency>
