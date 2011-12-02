@@ -4,7 +4,7 @@
   <artifactId>annotation-bundle</artifactId>
   <version>1</version>
   <name>annotation-bundle</name>
-  <description>Unit tests that exercise and verify the behavior of the AnnotatedResourceBundle class and its dependencies.</description>
+  <description>A ResourceBundle like class that incorporates annotated key value pairs read from comments in properties files (or annotations files). Permits tacking metadata into properties files for testing without impacting production code.</description>
   <dependencies>
   	<dependency>
   	    <groupId>junit</groupId>
