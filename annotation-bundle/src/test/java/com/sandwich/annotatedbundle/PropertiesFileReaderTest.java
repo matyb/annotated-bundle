@@ -41,6 +41,13 @@ public class PropertiesFileReaderTest extends FileReaderTest {
 		assertEquals("value1", annotation.getValue());
 	}
 	
+	@Test
+	public void testParsingAttributesFromLine_addToExistingProperties() throws Exception {
+		FileReader instance = createInstance();
+		assertEquals(Collections.emptyMap(), instance.capturePropertiesFromFile(
+			instance.findFile("key_on_multiple_lines", getClass().getClassLoader())));
+	}
+	
 	@Override
 	protected PropertiesFileReader createInstance() {
 		return new PropertiesFileReader(null);

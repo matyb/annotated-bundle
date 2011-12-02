@@ -18,7 +18,7 @@ public class FileReaderTest {
 	public void testParsingAttributesFromLine_emptyLine() throws Exception {
 		assertEquals(Collections.emptyMap(), createInstance().parseAttributesFromLine(""));
 	}
-
+	
 	@Test
 	public void testParsingAttributesFromLine_newLine() throws Exception {
 		assertEquals(Collections.emptyMap(), createInstance().parseAttributesFromLine("\r\n"));
@@ -28,7 +28,7 @@ public class FileReaderTest {
 	public void testParsingAttributesFromLine_normalProperty() throws Exception {
 		assertEquals(Collections.emptyMap(), createInstance().parseAttributesFromLine("key=value"));
 	}
-
+	
 	@Test
 	public void testParsingAttributesFromLine_keyIsTrimmed() throws Exception {
 		Map<String, String> propertiesMap = createInstance().parseAttributesFromLine("key  :value;");
@@ -59,6 +59,26 @@ public class FileReaderTest {
 		assertFalse(properties.hasNext());
 	}
 
+	@Test
+	public void testParsingAttributesFromLine_dynamicVariableStartButNoEnd() throws Exception {
+		Map<String, String> propertiesMap = createInstance().parseAttributesFromLine("key:  value${ ;");
+		Iterator<Entry<String, String>> properties = propertiesMap.entrySet().iterator();
+		Entry<String, String> entry = properties.next();
+		assertEquals("key", entry.getKey());
+		assertEquals("  value${ ", entry.getValue());
+		assertFalse(properties.hasNext());
+	}
+	
+	@Test
+	public void testParsingAttributesFromLine_dynamicVariableEndButNoStart() throws Exception {
+		Map<String, String> propertiesMap = createInstance().parseAttributesFromLine("key:  value} ;");
+		Iterator<Entry<String, String>> properties = propertiesMap.entrySet().iterator();
+		Entry<String, String> entry = properties.next();
+		assertEquals("key", entry.getKey());
+		assertEquals("  value} ", entry.getValue());
+		assertFalse(properties.hasNext());
+	}
+	
 	@Test
 	public void testParsingAttributesFromLine_noSeparator() throws Exception {
 		Map<String, String> propertiesMap = createInstance().parseAttributesFromLine("key:value key2:value2");

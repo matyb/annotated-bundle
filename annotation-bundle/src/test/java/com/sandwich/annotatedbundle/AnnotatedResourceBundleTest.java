@@ -2,6 +2,7 @@ package com.sandwich.annotatedbundle;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,13 +16,46 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 import org.junit.Test;
 
-import com.sandwich.annotatedbundle.AnnotatedResourceBundle;
-
 public class AnnotatedResourceBundleTest {
 
+	@Test
+	public void testNoFileFound() {
+		try{
+			new AnnotatedResourceBundle("i do not exist");
+			fail("The creation behavior should match that of a ResourceBundle when file is not found.");
+		}catch(MissingResourceException x){}
+	}
+	
+	@Test
+	public void testNoFileFound_null() {
+		try{
+			new AnnotatedResourceBundle(null);
+			fail("The creation behavior should match that of a ResourceBundle when file is not found.");
+		}catch(MissingResourceException x){}
+	}
+	
+	@Test
+	public void testGetBundle(){
+		assertEquals(ResourceBundle.getBundle("no_annotations"), 
+				new AnnotatedResourceBundle("no_annotations").getBundle());
+	}
+	
+	@Test
+	public void testGetBundle_withClassLoader(){
+		assertEquals(ResourceBundle.getBundle("no_annotations"), 
+				AnnotatedResourceBundle.getBundle("no_annotations", getClass().getClassLoader()).getBundle());
+	}
+	
+	@Test
+	public void testGetString(){
+		assertEquals("one", new AnnotatedResourceBundle("no_annotations").getString("1"));
+	}
+	
 	@Test
 	public void testReadPropertyFileForAnnotations_noAnnotations() {
 		testReadPropertyFileForAnnotations_noAnnotations("no_annotations.properties");

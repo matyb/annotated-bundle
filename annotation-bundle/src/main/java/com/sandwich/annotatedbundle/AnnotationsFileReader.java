@@ -16,7 +16,7 @@ public class AnnotationsFileReader extends FileReader {
 	
 	public AnnotationsFileReader(ResourceBundle bundle){
 		super(bundle);
-		isNullFileAcceptable = true;
+		setNullFileAcceptable(true);
 	}
 	
 	/**

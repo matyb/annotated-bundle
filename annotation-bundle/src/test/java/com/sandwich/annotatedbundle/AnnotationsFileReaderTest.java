@@ -62,6 +62,14 @@ public class AnnotationsFileReaderTest extends FileReaderTest {
 		assertEquals("value1", annotation.getValue());
 	}
 
+	@Test
+	public void testCaptureProperties_delimiterPrecedesBoundedKeyStart() throws Exception {
+		AnnotationsFileReader annotationsFileReader = new AnnotationsFileReader(null);
+		Entry<String, Map<String, String>> results = annotationsFileReader
+			.captureProperties("#@ @key0", "");
+		assertEquals(null, results);
+	}
+	
 	@Override
 	protected FileReader createInstance() {
 		return new AnnotationsFileReader(null);

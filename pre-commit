@@ -6,6 +6,18 @@ echo "Testing project before commit..."
 cd annotation-bundle
 mvn clean test
 if [ $? -eq 0 ]; then
+  echo "Run sonar? (default is no)? (y/n):"
+  read sonar
+  if [ "$sonar" == "y" ]; then
+    mvn sonar:sonar
+    echo "Proceed with commit (default is no)? (y/n):"
+    read commit
+    if [ "$commit" != "y" ]; then
+      echo ""
+      echo "commit aborted"
+      exit 1
+    fi
+  fi
   exit 0
 else
   echo ""

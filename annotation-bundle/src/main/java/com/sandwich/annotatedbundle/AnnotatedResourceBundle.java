@@ -50,18 +50,15 @@ public class AnnotatedResourceBundle {
 	}
 
 	private ResourceBundle createBundle(String bundleName, ClassLoader classLoader, Locale locale, Control control) {
-		ResourceBundle bundle = ResourceBundle.getBundle(
+		ResourceBundle tempBundle = ResourceBundle.getBundle(
 			bundleName == null ? 
-				null : bundleName.replace(PropertiesFileReader.PROPERTIES_FILE_SUFFIX, ""), 
+				"" : bundleName.replace(PropertiesFileReader.PROPERTIES_FILE_SUFFIX, ""), 
 				locale, classLoader, control);
-		if(bundle == null){
-			throw new IllegalArgumentException("resource bundle may not be null.");
-		}
 		this.bundleName = bundleName.replace(PropertiesFileReader.PROPERTIES_FILE_SUFFIX, "");
-		this.propertiesFileReader = new PropertiesFileReader(bundle);
-		this.annotationsFileReader = new AnnotationsFileReader(bundle);
+		this.propertiesFileReader = new PropertiesFileReader(tempBundle);
+		this.annotationsFileReader = new AnnotationsFileReader(tempBundle);
 		this.propertyAttributes = readFilesForAnnotations(classLoader);
-		return bundle;
+		return tempBundle;
 	}
 
 	/**
@@ -85,20 +82,20 @@ public class AnnotatedResourceBundle {
 	 * @return
 	 */
 	private Map<String, Map<String, String>> readFilesForAnnotations(String bundleName, ClassLoader classLoader) {
-		Map<String, Map<String, String>> propertyAttributes = new LinkedHashMap<String, Map<String, String>>();
-		propertyAttributes.putAll(annotationsFileReader.capturePropertiesFromFile(bundleName, classLoader));
+		Map<String, Map<String, String>> tempPropertyAttributes = new LinkedHashMap<String, Map<String, String>>();
+		tempPropertyAttributes.putAll(annotationsFileReader.capturePropertiesFromFile(bundleName, classLoader));
 		// only replace if existing, otherwise use resulting map from property file reading
 		Map<String, Map<String, String>> propertiesFromPropertyFile = propertiesFileReader.capturePropertiesFromFile(bundleName, classLoader);
 		for(Entry<String, Map<String, String>> entry : propertiesFromPropertyFile.entrySet()){
-			Map<String, String> value = propertyAttributes.get(entry.getKey());
+			Map<String, String> value = tempPropertyAttributes.get(entry.getKey());
 			if(value == null){
 				value = entry.getValue();
 			}else{
 				value.putAll(entry.getValue());
 			}
-			propertyAttributes.put(entry.getKey(), value);
+			tempPropertyAttributes.put(entry.getKey(), value);
 		}
-		return propertyAttributes;
+		return tempPropertyAttributes;
 	}
 
 	/**

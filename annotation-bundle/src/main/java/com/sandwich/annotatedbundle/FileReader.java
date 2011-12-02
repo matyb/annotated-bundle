@@ -35,7 +35,7 @@ public abstract class FileReader {
 	protected static final String ANNOTATION_LINE_START = "#@";
 	
 	private ResourceBundle bundle;
-	protected boolean isNullFileAcceptable = false;
+	private boolean isNullFileAcceptable = false;
 	
 	public FileReader(ResourceBundle bundle){
 		this.bundle = bundle;
@@ -45,7 +45,7 @@ public abstract class FileReader {
 	 * what is the suffix for files that this class reads?
 	 * @return .filesuffix
 	 */
-	abstract public String getFileSuffix();
+	abstract String getFileSuffix();
 	
 	/**
 	 * handle a single line being read in sequence, along with it's prior line
@@ -64,6 +64,10 @@ public abstract class FileReader {
 	 */
 	protected boolean isNullFileAcceptable(){
 		return isNullFileAcceptable;
+	}
+	
+	protected void setNullFileAcceptable(boolean isNullFileAcceptable) {
+		this.isNullFileAcceptable = isNullFileAcceptable;
 	}
 	
 	/**
@@ -96,15 +100,16 @@ public abstract class FileReader {
 	private String insertOtherPropertyValues(String value) {
 		int start = value.indexOf(EMBEDDED_VALUE_START);
 		int end = value.indexOf(EMBEDDED_VALUE_END);
-		while(end > start && end > -1 && start > -1){
-			String key = value.substring(start + EMBEDDED_VALUE_START.length(), end);
+		String newValue = value;
+		while(end > start && start > -1){
+			String key = newValue.substring(start + EMBEDDED_VALUE_START.length(), end);
 			String rawKey = new StringBuilder(EMBEDDED_VALUE_START).append(key).append(EMBEDDED_VALUE_END).toString();
 			String replacement = bundle.getString(key);
-			value = value.replace(rawKey, replacement);
-			start = value.indexOf(EMBEDDED_VALUE_START);
-			end = value.indexOf(EMBEDDED_VALUE_END);
+			newValue = newValue.replace(rawKey, replacement);
+			start = newValue.indexOf(EMBEDDED_VALUE_START);
+			end = newValue.indexOf(EMBEDDED_VALUE_END);
 		}
-		return value;
+		return newValue;
 	}
 	
 	/**
@@ -144,7 +149,7 @@ public abstract class FileReader {
 				previousLine = line;
 			}
 		} catch (FileNotFoundException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException("The file: "+file.getAbsolutePath()+" was not found.", e);
 		}
 		return propertyAttributes;
 	}
@@ -164,7 +169,7 @@ public abstract class FileReader {
 		try {
 			return new File(url.toURI());
 		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException(url+" was not formatted correctly.", e);
 		}
 	}
 	
