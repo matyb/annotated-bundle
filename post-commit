@@ -6,10 +6,10 @@ echo "Install new jars in local maven repo (default is no)? (y/n):"
 
 read install
 
-if (("$install" == "y") || (("$install" == "Y")); then
+if [ "$install" == "y" ]; then
   echo "installing jars in local repo..."
   cd annotation-bundle
-  mvn install
+  mvn install -DskipTests=true
   if [ $? -eq 0 ]; then
     exit 0
   else
