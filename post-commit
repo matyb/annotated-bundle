@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Run the test suite.
+# It will exit with 0 if it everything compiled and tested fine.
+echo "installing jars in local repo..."
+cd annotation-bundle
+mvn install
+if [ $? -eq 0 ]; then
+  exit 0
+else
+  echo ""
+  echo "Installing your project or running the tests failed."
+  exit 1
+fi
+
