@@ -1,12 +1,16 @@
-package com.sandwich.annotatedbundle;
+package com.sandwich.annotatedbundle.filereader;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.junit.Test;
+
+import com.sandwich.annotatedbundle.filereader.AnnotationsFileReader;
+import com.sandwich.annotatedbundle.filereader.FileReader;
 
 public class AnnotationsFileReaderTest extends FileReaderTest {
 
@@ -65,9 +69,33 @@ public class AnnotationsFileReaderTest extends FileReaderTest {
 	@Test
 	public void testCaptureProperties_delimiterPrecedesBoundedKeyStart() throws Exception {
 		AnnotationsFileReader annotationsFileReader = new AnnotationsFileReader(null);
-		Entry<String, Map<String, String>> results = annotationsFileReader
-			.captureProperties("#@ @key0", "");
+		Entry<String, Map<String, String>> results = annotationsFileReader.captureProperties("#@ @key0", "");
 		assertEquals(null, results);
+	}
+	
+	@Test
+	public void testCaptureProperties_noBoundedKeyStart() throws Exception {
+		AnnotationsFileReader annotationsFileReader = new AnnotationsFileReader(null);
+		Entry<String, Map<String, String>> results = annotationsFileReader.captureProperties("#@ key:value;", "");
+		assertEquals(null, results);
+	}
+	
+	@Test
+	public void testNullFileIsOK() throws Exception {
+		createInstance().capturePropertiesFromFile(null);
+	}
+	
+	@Test
+	public void testPropertyCapturerReturnsNull() throws Exception {
+		FileReader instance = createInstance();
+		stubPropertyCapturer(instance, new com.sandwich.annotatedbundle.filereader.Entry("meh"){
+			Map<String, String> readProperties(){
+				return null;
+			}
+		});
+		Map<String, Map<String, String>> capturedPropertiesFromFiled = instance.capturePropertiesFromFile(
+				"first_line_annotated.properties", getClass().getClassLoader());
+		assertEquals(Collections.emptyMap(), capturedPropertiesFromFiled);
 	}
 	
 	@Override

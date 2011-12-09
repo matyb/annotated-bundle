@@ -1,4 +1,4 @@
-package com.sandwich.annotatedbundle;
+package com.sandwich.annotatedbundle.filereader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,8 +11,7 @@ import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.Scanner;
 
-public abstract class FileReader {
-
+public abstract class FileReader implements PropertyCapturer {
 	/**
 	 * annotated key:value pair delimiter
 	 */
@@ -33,30 +32,46 @@ public abstract class FileReader {
 	 * start of an annotated properties annotation line
 	 */
 	protected static final String ANNOTATION_LINE_START = "#@";
-	
+	/**
+	 * a plan java.util.ResourceBundle to handle reading properties available at runtime.
+	 */
 	private ResourceBundle bundle;
-	private boolean isNullFileAcceptable = false;
+	/**
+	 * the object that handles the lines read from the file.
+	 */
+	private PropertyCapturer propertyCapturer;
+	/**
+	 * the file suffix for files this reader reads
+	 */
+	private String fileSuffix;
+	/**
+	 * is it ok for the file to be null (ie just return null if true, false -
+	 * throw an NPE)
+	 */
+	private boolean isNullFileAcceptable;
 	
-	public FileReader(ResourceBundle bundle){
+	public FileReader(ResourceBundle bundle, String fileSuffix){
+		this(bundle, fileSuffix, false);
+	}
+	
+	public FileReader(ResourceBundle bundle, String fileSuffix, boolean isNullFileAcceptable){
+		this.fileSuffix = fileSuffix;
+		this.isNullFileAcceptable = isNullFileAcceptable;
 		this.bundle = bundle;
 	}
 	
-	/**
-	 * what is the suffix for files that this class reads?
-	 * @return .filesuffix
-	 */
-	abstract String getFileSuffix();
+	public String getFileSuffix(){
+		return fileSuffix;
+	}
 	
-	/**
-	 * handle a single line being read in sequence, along with it's prior line
-	 * and a map to set properties read from the line in. that map is keyed by
-	 * property key and value is map read from annotation.
-	 * 
-	 * @param currentLine
-	 * @param previousLine
-	 * @return annotations by property key
-	 */
-	abstract Entry<String, Map<String, String>> captureProperties(String currentLine, String previousLine);
+	abstract PropertyCapturer createPropertyCapturer();
+	
+	PropertyCapturer getPropertyCapturer(){
+		if(propertyCapturer == null){
+			propertyCapturer = createPropertyCapturer();
+		}
+		return propertyCapturer;
+	}
 	
 	/**
 	 * should we ignore a missing file?
@@ -64,10 +79,6 @@ public abstract class FileReader {
 	 */
 	protected boolean isNullFileAcceptable(){
 		return isNullFileAcceptable;
-	}
-	
-	protected void setNullFileAcceptable(boolean isNullFileAcceptable) {
-		this.isNullFileAcceptable = isNullFileAcceptable;
 	}
 	
 	/**
@@ -134,7 +145,7 @@ public abstract class FileReader {
 			Scanner scanner = new Scanner(file);
 			while(scanner.hasNext()){
 				String line = scanner.nextLine();
-				Entry<String, Map<String, String>> e = captureProperties(line, previousLine);
+				Entry<String, Map<String, String>> e = getPropertyCapturer().captureProperties(line, previousLine);
 				if(e == null){
 					previousLine = line;
 					continue;
@@ -145,7 +156,11 @@ public abstract class FileReader {
 					prior = new LinkedHashMap<String, String>();
 					propertyAttributes.put(key, prior);
 				}
-				prior.putAll(e.getValue());
+				Map<String, String> value = e.getValue();
+				if(value == null){
+					value = new LinkedHashMap<String, String>();
+				}
+				prior.putAll(value);
 				previousLine = line;
 			}
 		} catch (FileNotFoundException e) {
@@ -158,16 +173,34 @@ public abstract class FileReader {
 	 * get a file instance without concatenating/replacing the file suffix.
 	 */
 	public File findFile(String bundleName, ClassLoader classLoader) {
+		return findFile(bundleName, classLoader, getFileSuffix());
+	}
+	
+	/**
+	 * read the properties from one line in relation to it's sibling.
+	 * @param previousLine
+	 * @param currentLine
+	 * @return the property key and its attributes
+	 */
+	public Entry<String, Map<String, String>> captureProperties(String previousLine, String currentLine){
+		return getPropertyCapturer().captureProperties(previousLine, currentLine);
+	}
+
+	File findFile(String bundleName, ClassLoader classLoader, String fileSuffix) {
+		return findFile(bundleName, classLoader, fileSuffix, new URLToURITransformer());
+	}
+	
+	File findFile(String bundleName, ClassLoader classLoader, String fileSuffix, URLToURITransformer urlToUriTransformer) {
 		if(bundleName == null){
 			return null;
 		}
-		URL url = classLoader.getResource(bundleName.endsWith(getFileSuffix()) ?
-				bundleName : bundleName + getFileSuffix());
+		URL url = classLoader.getResource(bundleName.endsWith(fileSuffix) ?
+				bundleName : bundleName + fileSuffix);
 		if(url == null){
 			return null;
 		}
 		try {
-			return new File(url.toURI());
+			return new File(urlToUriTransformer.toURI(url));
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException(url+" was not formatted correctly.", e);
 		}

@@ -1,10 +1,16 @@
-package com.sandwich.annotatedbundle;
+package com.sandwich.annotatedbundle.filereader;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -92,14 +98,14 @@ public class FileReaderTest {
 	@Test
 	public void testPropertyCapturing_nulls_nullFileAcceptable() throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
 		FileReader reader = testPropertyCapturing_nulls(true);
-		assertEquals(Collections.emptyMap(), reader.capturePropertiesFromFile(null, null));
+		assertEquals(Collections.emptyMap(), reader.capturePropertiesFromFile(null));
 	}
 	
 	@Test
 	public void testPropertyCapturing_nulls_nullFileNotAcceptable() throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
 		FileReader reader = testPropertyCapturing_nulls(false);
 		try{
-			reader.capturePropertiesFromFile(null, null);
+			reader.capturePropertiesFromFile(null);
 			fail();
 		}catch(NullPointerException npe){
 			
@@ -123,6 +129,57 @@ public class FileReaderTest {
 		}
 	}
 	
+	@Test
+	public void testFileNotFound() throws Exception {
+		try{
+			createInstance().capturePropertiesFromFile(new File("doesntexist"));
+			fail("The file doesn't exist, the app shouldn't be able to read it...");
+		}catch(IllegalArgumentException x){
+			assertEquals(FileNotFoundException.class, x.getCause().getClass());
+		}
+	}
+	
+	@Test
+	public void testFindFileNullFileName() throws Exception {
+		assertEquals(null, createInstance().findFile(null, null));
+	}
+
+	@Test
+	public void testIllegalArgumentExceptionThrownWhenURITransformationFails() throws Exception {
+		final URISyntaxException uriSyntaxException = new URISyntaxException("", "");
+		try{
+			URLToURITransformer urlToUriTransformer = new URLToURITransformer() {
+				@Override
+				URI toURI(URL url) throws URISyntaxException {
+					throw uriSyntaxException;
+				}
+			};
+			createInstance().findFile("first_line_annotated.properties", 
+					getClass().getClassLoader(), "", 
+					urlToUriTransformer);
+			fail();
+		}catch(IllegalArgumentException x){
+			assertSame(uriSyntaxException, x.getCause());
+		}
+	}
+	
+	public void stubPropertyCapturer(FileReader instance, 
+			final com.sandwich.annotatedbundle.filereader.Entry entry) throws NoSuchFieldException, IllegalAccessException {
+		Field propertyCapturer = FileReader.class.getDeclaredField("propertyCapturer");
+		try{
+			propertyCapturer.setAccessible(true);
+			propertyCapturer.set(instance, new PropertyCapturer(){
+				@Override
+				public Entry<String, Map<String, String>> captureProperties(
+						String currentLine, String previousLine) {
+					return entry;
+				}
+			});
+		}finally{
+			propertyCapturer.setAccessible(false);
+		}
+	}
+	
 	/**
 	 * return instance for testing. default implementation's abstract method
 	 * implementations throw exceptions.
@@ -134,15 +191,10 @@ public class FileReaderTest {
 		 * implements abstract methods in a manner that will fail. permits
 		 * instantiation for testing concrete methods.
 		 */
-		return new FileReader(null){
+		return new FileReader(null, "", false){
 			@Override
-			Entry<String, Map<String, String>> captureProperties(String currentLine, String previousLine) {
-				fail("captureProperties: not expecting a call.");
-				return null;
-			}
-			@Override
-			public String getFileSuffix() {
-				fail("getFileSuffix: not expecting a call.");
+			PropertyCapturer createPropertyCapturer() {
+				fail("createPropertyCapturer: not expecting a call.");
 				return null;
 			}
 		};

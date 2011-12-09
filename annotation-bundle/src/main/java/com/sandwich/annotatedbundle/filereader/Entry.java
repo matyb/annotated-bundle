@@ -1,4 +1,4 @@
-package com.sandwich.annotatedbundle;
+package com.sandwich.annotatedbundle.filereader;
 
 import java.util.Map;
 

@@ -7,6 +7,10 @@ import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.ResourceBundle.Control;
 
+import com.sandwich.annotatedbundle.filereader.AnnotationsFileReader;
+import com.sandwich.annotatedbundle.filereader.FileReader;
+import com.sandwich.annotatedbundle.filereader.PropertiesFileReader;
+
 public class AnnotatedResourceBundle {
 	
 	private ResourceBundle bundle;

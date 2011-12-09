@@ -1,4 +1,4 @@
-package com.sandwich.annotatedbundle;
+package com.sandwich.annotatedbundle.filereader;
 
 import static org.junit.Assert.assertEquals;
 
@@ -8,6 +8,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.junit.Test;
+
+import com.sandwich.annotatedbundle.filereader.FileReader;
+import com.sandwich.annotatedbundle.filereader.PropertiesFileReader;
 
 public class PropertiesFileReaderTest extends FileReaderTest {
 
@@ -46,6 +49,19 @@ public class PropertiesFileReaderTest extends FileReaderTest {
 		FileReader instance = createInstance();
 		assertEquals(Collections.emptyMap(), instance.capturePropertiesFromFile(
 			instance.findFile("key_on_multiple_lines", getClass().getClassLoader())));
+	}
+	
+	@Test
+	public void testPropertyCapturerReturnsNull() throws Exception {
+		FileReader instance = createInstance();
+		stubPropertyCapturer(instance, new com.sandwich.annotatedbundle.filereader.Entry("meh"){
+			Map<String, String> readProperties(){
+				return null;
+			}
+		});
+		Map<String, Map<String, String>> capturedPropertiesFromFiled = instance.capturePropertiesFromFile(
+				"first_line_annotated.properties", getClass().getClassLoader());
+		assertEquals("{meh={}}", capturedPropertiesFromFiled.toString());
 	}
 	
 	@Override
