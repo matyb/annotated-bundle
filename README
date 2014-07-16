@@ -11,7 +11,8 @@ Could be analyzed by acceptance tests or validation code w/ data from the commen
 
 Now at runtime, the annotated keys and values are available via the AnnotatedResourceBundle class. Keeping with the same example:
 
-  AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("images.properties");
+  AnnotatedResourceBundle annotatedResourceBundle = 
+      new AnnotatedResourceBundle("images.properties");
   for(Entry<String, String> entry : annotatedResourceBundle.getAttributes("warning.dialog.alert.icon").entrySet()){
       System.out.println(entry);
   }
