@@ -63,7 +63,9 @@ We can attach the annotations outside the implementations code (so that this met
   `warning.dialog.alert.icon=/images/w_alert.png`
 
 in the properties file, we can add metadata at runtime to it with:
-  `#@ @warning.dialog.alert.icon; location:warning_dialog; resource_type:png-image;`
+```
+#@ @warning.dialog.alert.icon; location:warning_dialog; resource_type:png-image;
+```
 
 added to the annotations file (in the same pkg).
 
