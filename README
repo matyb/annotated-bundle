@@ -11,10 +11,12 @@ Could be analyzed by acceptance tests or validation code w/ data from the commen
 
 Now at runtime, the annotated keys and values are available via the AnnotatedResourceBundle class. Keeping with the same example:
 
+```
   AnnotatedResourceBundle rb = new AnnotatedResourceBundle("images.properties");
   for(Entry<String, String> entry : rb.getAttributes("warning.dialog.alert.icon").entrySet()){
       System.out.println(entry);
   }
+```
 
 would output:
   location=warning_dialog
