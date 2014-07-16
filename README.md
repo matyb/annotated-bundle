@@ -1,0 +1,55 @@
+A java.util.ResourceBundle replacement for configuration properties. Helpful for attaching metadata to properties for the purpose of validating, inspecting, binding, etc. properties without infringing on any existing usage of those resources.
+
+This is not a replacement for xml (JSON, etc.) or any structured data format you may find in configuration files, those suit that purpose much better. This is, however a simple way you can augment your production properties files with information that is only visible and significant to your tests or validation code.
+
+For example the property:
+  warning.dialog.alert.icon=/images/w_alert.png
+
+Could be analyzed by acceptance tests or validation code w/ data from the comment (implicitly bound to the warning.dialog.alert.icon property because it precedes the property line):
+  #@ location:warning_dialog; resource_type:png-image;
+  warning.dialog.alert.icon=/images/w_alert.png
+
+Now at runtime, the annotated keys and values are available via the AnnotatedResourceBundle class. Keeping with the same example:
+
+```
+AnnotatedResourceBundle rb = new AnnotatedResourceBundle("images.properties");`
+for(Entry<String, String> entry : rb.getAttributes("warning.dialog.alert.icon").entrySet()){`
+      System.out.println(entry);`
+}
+```
+
+would output:
+  location=warning_dialog
+  resource_type=png-image
+
+There is also the ability to reference properties in the annotations:
+  #@ host:${host_name}; user:${user_name}; password:${pass};
+  connection=my_connection://
+  host_name=www.github.com
+  user_name=matyb
+  password=pass123
+
+  AnnotatedResourceBundle annotatedResourceBundle = new AnnotatedResourceBundle("connections.properties");
+  for(Entry<String, String> entry : annotatedResourceBundle.getAttributes("connection").entrySet()){
+      System.out.println(entry);
+  }
+
+would output:
+  host_name=www.github.com
+  user_name=matyb
+  password=pass123
+
+Lastly - the annotations can be added outside the class, they are merely bound using the @ symbol.
+So in a project where you don't want this information in your production code (ie you cannot or do not want to modify it):
+  project/src/pkg/some_file.properties
+  tests/test/pkg/some_file.annotations
+
+We can attach the annotations outside the implementations code (so that this metadata can easily vary independently of the properties). So with a property like:
+  warning.dialog.alert.icon=/images/w_alert.png
+
+in the properties file, we can add metadata at runtime to it with:
+  #@ @warning.dialog.alert.icon; location:warning_dialog; resource_type:png-image;
+
+added to the annotations file (in the same pkg).
+
+For specific examples, please check the tests. 
