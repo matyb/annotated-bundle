@@ -19,8 +19,11 @@ for(Entry<String, String> entry : rb.getAttributes("warning.dialog.alert.icon").
 ```
 
 would output:
+
+```
   location=warning_dialog
   resource_type=png-image
+```
 
 There is also the ability to reference properties in the annotations:
   #@ host:${host_name}; user:${user_name}; password:${pass};
